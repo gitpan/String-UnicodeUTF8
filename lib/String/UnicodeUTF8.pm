@@ -6,7 +6,7 @@ use warnings;
 use String::Unquotemeta ();
 use Module::Want        ();
 
-$String::UnicodeUTF8::VERSION = '0.1';
+$String::UnicodeUTF8::VERSION = '0.2';
 
 sub import {
     return 1 if @_ == 1;    # no-op import()
@@ -227,7 +227,7 @@ String::UnicodeUTF8 - non-collation related unicode/utf-8 bytes string-type-agno
 
 =head1 VERSION
 
-This document describes String::UnicodeUTF8 version 0.1
+This document describes String::UnicodeUTF8 version 0.2
 
 =head1 SYNOPSIS
 
@@ -241,7 +241,7 @@ This document describes String::UnicodeUTF8 version 0.1
 
 =head1 DESCRIPTION
 
-Unicode is awesome. utf-8 is also awesome. They are related but different. That difference and all the little twiggles in between (e.g. the actual and common use of charset and encoding) make it appear to be too hard but its really not, honest!
+Unicode is awesome. utf-8 is also awesome. They are related but different. That difference and all the little twiggles in between make it appear to be too hard but its really not, honest!
 
 The unicode problem is a solved one. The easiest way to manage day to day is have a couple of simple items in mind:
 
@@ -273,17 +273,7 @@ The latter are just bytes that could be anything (hopefully explicitly utf-8 in 
 
 =back
 
-=head2 UTF-8 Bytes String
-
-A string of bytes whose Unicode characters are made up of utf-8 byte sequences (e.g. \xe2\x99\xa5 in our heart example). Each Unicode character is handled internally by perl as the bytes that make it up (and not as a single Unicode character).
-
-=head2 Unicode String
-
-A L<UTF-8 Bytes String> that has it’s UTF-8 flag set so that perl treats utf-8 byte sequences as the individual Unicode character it makes up (e.g. \x{2665} in our heart example).
-
-=over 4
-
-=item What this module is not meant for
+=head2 What this module is not meant for
 
 =over 4
 
@@ -299,13 +289,13 @@ See L<perlunicode> for more info.
 
 =back 
 
-=item What this module is meant for
+=head2 What this module is meant for
 
 =over 4
 
 =item Consistent terminology.
 
-The term “utf-8” and “Unicode” are typically used ambiguously and perl docs are not immune.
+The term “utf-8” and “Unicode” (akin to “encoding” and “charset”) are typically used ambiguously and perl docs are not immune.
 
 It could mean either a Unicode string or a bytes string depending on the “thing” in question. ick, just ick. That is where this module comes in. 
 
@@ -327,7 +317,45 @@ Do I use the return value or does it modify the SV in place?
 
 =back
 
-=back
+=head2 Glossary
+
+This glossary holds true when doing the stuff this module does only with this module. If you fiddle with the guts then its more likely you can end up in a wonky pseudo state.
+
+=head3 UTF-8 Bytes String
+
+A string of bytes whose Unicode characters are made up of utf-8 byte sequences (e.g. \xe2\x99\xa5 in our heart example). Each Unicode character is handled internally by perl as the bytes that make it up (and not as a single Unicode character).
+
+=head3 Unicode String
+
+A L<UTF-8 Bytes String> that additionally has it’s UTF-8 flag set so that perl treats utf-8 byte sequences as the individual Unicode character it makes up (e.g. \x{2665} in our heart example).
+
+=head2 A word on unicode and utf-8 representation in source code
+
+Another point of confusion can be how unicode and utf-8 are represented in source code and the default or pragma set treatment of utf-8.
+
+The characer itself:
+
+    perl -e 'print utf8::is_utf8("I ♥ perl") . "\n";'          # could be a L<UTF-8 Bytes String> or a L<Unicode String> depending on perl’s “mode”.
+    perl -e 'use utf8;print utf8::is_utf8("I ♥ perl") . "\n";' # a L<Unicode String> because of perl’s “mode”.
+    perl -e 'no utf8;print utf8::is_utf8("I ♥ perl") . "\n";'  # a L<UTF-8 Bytes String>because of perl’s “mode”.
+
+\x octet notation:
+
+    perl -e 'print utf8::is_utf8("I \xe2\x99\xa5 perl") . "\n";'          # a L<UTF-8 Bytes String> regardless of perl’s “mode”.
+    perl -e 'use utf8;print utf8::is_utf8("I \xe2\x99\xa5 perl") . "\n";' # a L<UTF-8 Bytes String> regardless of perl’s “mode”.
+    perl -e 'no utf8;print utf8::is_utf8("I \xe2\x99\xa5 perl") . "\n";'  # a L<UTF-8 Bytes String> regardless of perl’s “mode”.
+
+\x unicode notation:
+
+    perl -e 'print utf8::is_utf8("I \x{2665} perl") . "\n";'          # a L<Unicode String> regardless of perl’s “mode”.
+    perl -e 'use utf8;print utf8::is_utf8("I \x{2665} perl") . "\n";' # a L<Unicode String> regardless of perl’s “mode”.
+    perl -e 'no utf8;print utf8::is_utf8("I \x{2665} perl") . "\n";'  # a L<Unicode String> regardless of perl’s “mode”.
+
+bracketed \x octet: 
+
+This one I don’t like. It is ambiguous (it looks like octets but the notation looks like unicode). I almost always only see it when data is in the process of being corrupted.
+
+    perl -e 'print utf8::is_utf8("I \x{e2}\x{99}\x{a5} perl") . "\n";'
 
 =head1 INTERFACE
 
@@ -339,13 +367,17 @@ Like utf8::is_utf8() but is less ambiguously named* and works on perls before ut
 
 There is one rare caveat: If you have an old perl, you have a string that contains no Unicode characters, you are in compiled perl w/ B optomized away, and you've upgraded a string outside of the functions in this module (or use the same text in different scalars). You *may* get erroneous results.
 
-* is_utf8() does not mean “are these bytes in utf-8 encoding (as apposed to, say, utf-16, latin1, etc etc)”, it means “is the UTF-8 flag set on this string” (i.e. is this a Uncode string)
+* is_utf8() does not mean “are these bytes in utf-8 encoding (as apposed to, say, utf-16, latin1, etc etc)”, it means “are these bytes in utf-8 encoding and is the UTF-8 flag set on this string” (i.e. is this a Uncode string):
+
+Don’t take my word for it, try it your self:
+
+    perl -e 'print utf8::is_utf8("I \xe2\x99\xa5 perl") . "\n";print utf8::is_utf8("I \x{2665} perl") . "\n";' # this is the same on 5.6.2 as 5.16.0
 
 =head2 char_count()
 
 Get the number of characters, conceptually, of the given string regardless of the argument’s type.
 
-e.g. "I \x{2665} perl" and "I \xe2\x99\xa5 perl" both have 8 characters. The latter just happens to be encoded in utf-8 which uses a sequence of three smaller characters to represent the one conceptual unicode character “♥”.
+e.g. "I \x{2665} perl" and "I \xe2\x99\xa5 perl" both have 8 characters. The latter just happens to be encoded in utf-8 which uses a sequence of three smaller “characters” to represent the one conceptual unicode character “♥”.
 
 =head2 bytes_size()
 

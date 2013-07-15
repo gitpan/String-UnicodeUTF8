@@ -22,4 +22,4 @@ requires:
   Module::Want: 0
   String::Unquotemeta: 0
   Test::More: 0
-version: 0.1
+version: 0.2
