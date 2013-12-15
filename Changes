@@ -1,5 +1,11 @@
 Revision history for String-UnicodeUTF8
 
+0.21  Sun Dec 15 11:17:56 2013
+    - make unicode \x{} zero padded to avoid ambiguity
+    - update min req ver of Module::Want to latest
+    - rt 86943: add/expand POD about \N and \x{XX} notation
+    - rt 88437: add troubleshooting POD about comparing bytes of unicode and utf-8 bytes strings
+
 0.2  Sun Jul 14 20:13:37 2013
        Moar info in POD
 

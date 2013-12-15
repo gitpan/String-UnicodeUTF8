@@ -8,10 +8,10 @@ my $builder = Module::Build->new(
     dist_author       => 'Daniel Muey <http://drmuey.com/cpan_contact.pl>',
     dist_version_from => 'lib/String/UnicodeUTF8.pm',
     requires          => {
-        'Test::More'          => 0,    # for testing, I know I know: Test::XT
+        'Test::More'          => 0,     # for testing, I know I know: Test::XT
         'String::Unquotemeta' => 0,
-        'Module::Want'        => 0,
-        'B::Flags'            => 0,    # make optional?
+        'Module::Want'        => 0.6,
+        'B::Flags'            => 0,     # make optional?
     },
     add_to_cleanup => ['String-UnicodeUTF8-*'],
 );

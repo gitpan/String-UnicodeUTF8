@@ -33,12 +33,12 @@
       "runtime" : {
          "requires" : {
             "B::Flags" : "0",
-            "Module::Want" : "0",
+            "Module::Want" : "0.6",
             "String::Unquotemeta" : "0",
             "Test::More" : "0"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.2"
+   "version" : "0.21"
 }

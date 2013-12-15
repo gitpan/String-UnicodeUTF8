@@ -4,9 +4,9 @@ use strict;
 use warnings;
 
 use String::Unquotemeta ();
-use Module::Want        ();
+use Module::Want 0.6 ();
 
-$String::UnicodeUTF8::VERSION = '0.2';
+$String::UnicodeUTF8::VERSION = '0.21';
 
 sub import {
     return 1 if @_ == 1;    # no-op import()
@@ -106,7 +106,7 @@ sub escape_utf8_or_unicode {
             # }
             # els
             if ( $n < 32 || $n > 126 ) {
-                sprintf( ( !$is_uni && $n < 255 ? '\x%02x' : '\x{%x}' ), $n );
+                sprintf( ( !$is_uni && $n < 255 ? '\x%02x' : '\x{%04x}' ), $n );
             }
             elsif ($quotemeta) {
                 quotemeta($chr);
@@ -227,7 +227,7 @@ String::UnicodeUTF8 - non-collation related unicode/utf-8 bytes string-type-agno
 
 =head1 VERSION
 
-This document describes String::UnicodeUTF8 version 0.2
+This document describes String::UnicodeUTF8 version 0.21
 
 =head1 SYNOPSIS
 
@@ -353,9 +353,77 @@ The characer itself:
 
 bracketed \x octet: 
 
-This one I don’t like. It is ambiguous (it looks like octets but the notation looks like unicode). I almost always only see it when data is in the process of being corrupted.
+This one I don’t like. It is ambiguous (it is octets but it looks like unicode). I almost always only see it when data is in the process of being corrupted.
 
     perl -e 'print utf8::is_utf8("I \x{e2}\x{99}\x{a5} perl") . "\n";'
+
+Good rule of thumb is to be explicit with your intent: use brackets form with 4+ digits (zero padded if necessary) and non-bracket form with 2 digits.
+
+=head2 Tips on troubleshooting Unicode/utf-8 problems
+
+I’ll maintain some more detailed Unicode resources L<at my Unicode page|http://drmuey.com/?do=page&id=57> but for this doc there are 3 things that will help you:
+
+=over 4
+
+=item 1 checks the bytes
+
+Don’t look so much at seemingly corrupt display, examine the bytes at the source. Once you verify they are legit you can move on to finding out what it is that is mishandling them along the route.
+
+For example, you might do a SELECT on a column and also include the column in HEX and the character and bytes lengths of the column in the query. If the bytes are correct but the character length is wrong then that is a great hint as to where to look next.
+
+For perl, make sure you do so on bytes strings:
+
+    multivac:~ dmuey$ perl -le 'no utf8;print unpack("H*", "I ♥ Perl");'
+    4920e299a5205065726c
+    multivac:~ dmuey$ perl -le 'use utf8;print unpack("H*", "I ♥ Perl");'
+    492065205065726c
+    multivac:~ dmuey$ perl -le 'no utf8;print pack("H*", "4920e299a5205065726c");'
+    I ♥ Perl
+    multivac:~ dmuey$ perl -le 'use utf8;print pack("H*", "4920e299a5205065726c");'
+    I ♥ Perl
+    multivac:~ dmuey$ perl -le 'use utf8;print pack("H*", "492065205065726c");'
+    I e Perl
+    multivac:~ dmuey$ perl -le 'no utf8;print pack("H*", "492065205065726c");'
+    I e Perl
+    multivac:~ dmuey$
+
+Even better, use a tool that does what you mean regardless of the type of string:
+
+e.g. Devel::Kit does what you mean regardless of the type (via this module as it happens ;p):
+
+    [dmuey@multivac ~]$ perl -MDevel::Kit -e 'no utf8;xe("I ♥ Perl",1);'
+    debug(): Hex: 	[
+          'I : 49',
+          '  : 20',
+          '♥ : e299a5',
+          '  : 20',
+          'P : 50',
+          'e : 65',
+          'r : 72',
+          'l : 6c'
+        ]
+    [dmuey@multivac ~]$ perl -MDevel::Kit -e 'use utf8;xe("I ♥ Perl",1);'
+    debug(): Hex: 	[
+          'I : 49',
+          '  : 20',
+          '♥ : e299a5',
+          '  : 20',
+          'P : 50',
+          'e : 65',
+          'r : 72',
+          'l : 6c'
+        ]
+    [dmuey@multivac ~]$
+
+=item 2 use the simplest scenario
+
+If you can rule out as many factors as possible (HTTP request/response, database settings, perl -E enabling optional features that could affect Unicode/utf8-bytes,  etc) it will help you hone in on where your good bytes went bad.
+
+=item 3 use the simplest string
+
+I tend to use 'I ♥ Unicode' so that there is one multi-byte Unicode character to examine. Also, it is a visible charcater that most fonts support, which helps.
+
+=back
 
 =head1 INTERFACE
 
@@ -480,6 +548,10 @@ No bugs have been reported.
 Please report any bugs or feature requests to
 C<bug-string-unicodeutf8@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
+
+=head1 TODO
+
+\N notation escaping/unescaping: Seems like YAGNI but if there is enough demand we can add it (lazy/separate since it’d be heavy).
 
 =head1 AUTHOR
 

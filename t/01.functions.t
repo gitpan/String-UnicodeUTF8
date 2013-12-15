@@ -1,4 +1,4 @@
-use Test::More tests => 40 + 14 + 12 + ( 7 * 28 );
+use Test::More tests => 40 + 14 + 12 + ( 7 * 28 ) + 20;
 
 use String::UnicodeUTF8;
 
@@ -173,4 +173,25 @@ for my $var_name ( sort keys %test_strings ) {
         is( unquotemeta_utf8( $test_strings{$var_name}{$q_type} ),    $test_strings{$var_name}{'unquotemeta_utf8'},    "unquotemeta_utf8() for $q_type via $var_name" );
         is( unquotemeta_unicode( $test_strings{$var_name}{$q_type} ), $test_strings{$var_name}{'unquotemeta_unicode'}, "unquotemeta_unicode() for $q_type via $var_name" );
     }
+}
+
+my %code_points = (
+    0      => [ '0000',  'null' ],
+    1      => [ '0001',  'length of 1 - number 1, just past null' ],
+    7      => [ '0007',  'length of 1 - single digit' ],
+    42     => [ '002a',  'length of 2 - double digit', '*' ],
+    127    => [ '007f',  'length of 2 - end of ascii' ],
+    128    => [ '0080',  'legnth of 2 - begin of ascii ext' ],
+    255    => [ '00ff',  'length of 2 - end of ascii ext' ],
+    256    => [ '0100',  'length of 3 - just past codepoints that fit in one byte' ],
+    9829   => [ '2665',  'length of 4' ],
+    127866 => [ '1f37a', 'longer than 4' ],
+);
+for my $n ( sort { $a <=> $b } keys %code_points ) {
+    my $str = $code_points{$n}->[2] || '\x{' . $code_points{$n}->[0] . '}';
+    my $chr = chr( hex $code_points{$n}->[0] );
+    note qq{$n : $str};
+
+    cmp_ok( hex( sprintf( "%04x", $n ) ), '==', hex( sprintf( "%x", $n ) ), "$n sanity: %x and %04 are numerically the same" );
+    is( escape_unicode("\xff $chr"), "\\x{00ff} $str", "escape_unicode() zero pads to length of 4 (avoids ambiguity): $code_points{$n}->[1]" );
 }
